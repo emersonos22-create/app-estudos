@@ -1,62 +1,42 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { User } from '@supabase/supabase-js'
 import AuthPage from './components/AuthPage'
 import OnboardingPage from './components/OnboardingPage'
 import DashboardPage from './components/DashboardPage'
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string>('')
   const [onboardingCompleted, setOnboardingCompleted] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        checkOnboarding(session.user.id)
-      } else {
-        setLoading(false)
-      }
-    })
-
-    // Escutar mudanças de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        checkOnboarding(session.user.id)
-      } else {
-        setLoading(false)
-        setOnboardingCompleted(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    // Verificar se há usuário logado
+    const loggedUser = localStorage.getItem('ritmo_logged_user')
+    const loggedUserName = localStorage.getItem('ritmo_logged_user_name')
+    
+    if (loggedUser && loggedUserName) {
+      setUserId(loggedUser)
+      setUserName(loggedUserName)
+      
+      // Verificar se onboarding foi completado para este usuário
+      const completed = localStorage.getItem(`onboarding_completed_${loggedUser}`)
+      setOnboardingCompleted(completed === 'true')
+    }
+    
+    setLoading(false)
   }, [])
 
-  const checkOnboarding = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('onboarding_completed')
-        .eq('id', userId)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao verificar onboarding:', error)
-      }
-
-      setOnboardingCompleted(data?.onboarding_completed ?? false)
-    } catch (error) {
-      console.error('Erro ao verificar onboarding:', error)
-    } finally {
-      setLoading(false)
-    }
+  const handleAuth = (id: string, name: string) => {
+    setUserId(id)
+    setUserName(name)
+    localStorage.setItem('ritmo_logged_user', id)
+    localStorage.setItem('ritmo_logged_user_name', name)
+    
+    // Verificar se onboarding foi completado para este usuário
+    const completed = localStorage.getItem(`onboarding_completed_${id}`)
+    setOnboardingCompleted(completed === 'true')
   }
 
   if (loading) {
@@ -70,13 +50,24 @@ export default function Home() {
     )
   }
 
-  if (!user) {
-    return <AuthPage />
+  // Se não está logado, mostrar tela de autenticação
+  if (!userId) {
+    return <AuthPage onAuth={handleAuth} />
   }
 
+  // Se está logado mas não completou onboarding
   if (!onboardingCompleted) {
-    return <OnboardingPage userId={user.id} onComplete={() => setOnboardingCompleted(true)} />
+    return (
+      <OnboardingPage 
+        userId={userId} 
+        onComplete={() => {
+          localStorage.setItem(`onboarding_completed_${userId}`, 'true')
+          setOnboardingCompleted(true)
+        }} 
+      />
+    )
   }
 
-  return <DashboardPage userId={user.id} />
+  // Se está logado e completou onboarding, mostrar dashboard
+  return <DashboardPage userId={userId} userName={userName} />
 }

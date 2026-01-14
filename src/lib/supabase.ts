@@ -43,3 +43,56 @@ export type StudySession = {
   completed_at?: string
   actual_duration?: number
 }
+
+// Novos tipos para o sistema aprimorado
+export type Subject = {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  created_at: string
+}
+
+export type StudySessionDetailed = {
+  id: string
+  user_id: string
+  subject_id?: string
+  subject_name?: string
+  session_type: 'pomodoro' | 'custom' | 'free'
+  work_duration: number
+  break_duration: number
+  cycles_completed: number
+  total_work_minutes: number
+  total_break_minutes: number
+  productivity_rating?: number
+  had_distractions?: boolean
+  feedback_notes?: string
+  started_at?: string
+  completed_at?: string
+  status: 'pending' | 'in_progress' | 'completed' | 'abandoned'
+  created_at: string
+}
+
+export type UserSettings = {
+  user_id: string
+  daily_available_minutes: number
+  default_work_duration: number
+  default_break_duration: number
+  sound_enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type PomodoroPreset = {
+  name: string
+  work: number
+  break: number
+  description: string
+}
+
+export const POMODORO_PRESETS: PomodoroPreset[] = [
+  { name: 'Clássico', work: 25, break: 5, description: 'Técnica Pomodoro tradicional' },
+  { name: 'Estendido', work: 50, break: 10, description: 'Para sessões mais longas' },
+  { name: 'Curto', work: 15, break: 3, description: 'Para tarefas rápidas' },
+  { name: 'Intenso', work: 90, break: 20, description: 'Deep work' },
+]
